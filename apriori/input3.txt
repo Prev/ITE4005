@@ -1,0 +1,10 @@
+Egg	Ramen	Tuna
+Ramen	Hatban
+Ramen	Coke
+Egg	Ramen	Hatban
+Egg	Coke
+Ramen	Coke
+Ramen	Hatban
+Egg	Ramen	Coke	Tuna
+Egg	Ramen	Coke
+Onion
