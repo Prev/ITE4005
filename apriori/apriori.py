@@ -5,6 +5,9 @@ if len(sys.argv) != 4:
 	sys.exit(-1)
 
 
+def itemset_hash(itemset) :
+	return ','.join(str(x) for x in itemset)
+
 class Apriori:
 
 	# 2d list of item (list of transactions)
@@ -26,7 +29,8 @@ class Apriori:
 		self.minimum_support = minimum_support
 
 		for line in input_file.readlines() :
-			t = line[0:-1].split("\t") # Remove '\n' on end of string and split it
+			if line[-1] == '\n': line = line[0:-1]
+			t = line.split('\t')
 
 			self.transactions.append(t)
 			self.item_list |= set(t) # Add new item ids
@@ -45,31 +49,96 @@ class Apriori:
 			for item in transaction:
 				self.sparse_matrix[-1][id_of_item[item]] = 1
 
-		self._run()
+		#####
+		# Get association rules
+		#####
+		rules = self.all_association_rules(
+			self.get_frequent_itemsets()
+		)
 
+		#####
+		# Print association rules
+		#####
+		for itemset, ass_itemset, sup, conf in rules :
+			print("%s\t%s\t%.2f\t%.2f" % (
+				self.pretty_itemset(itemset),
+				self.pretty_itemset(ass_itemset),
+				sup / len(self.transactions) * 100,
+				conf * 100,
+			))
 
-
-	def _run(self):
-		""" Run algorithm
+	def get_frequent_itemsets(self):
+		""" Get frequent itemsets by apriori algorithm
 		"""
-		itemsets = []
-		for i in range(0, len(self.item_list)):
-			itemsets.append([i])
+		frequent_itemsets = []
 
+		itemsets = [[i] for i in range(0, len(self.item_list))]
 		k = 0
 		while True :
 			supports = self._calc_supports(itemsets)
-			frequent_itemsets = self._get_frequent_itemsets(itemsets, supports)
+			cur_frequent_itemsets = self._get_frequent_itemsets(itemsets, supports, return_with_support=True)
 
-			self._print_itemsets(itemsets, supports)
+			frequent_itemsets += cur_frequent_itemsets
+			candidates = self._get_candidates(itemsets=[t[0] for t in cur_frequent_itemsets], k=k+1)
 
-			candidates = self._get_candidates(frequent_itemsets, k+1)
+			#self._print_itemsets(itemsets, supports)
 
 			if len(candidates) == 0 :
 				break
 			else :
 				itemsets = candidates
 				k += 1
+
+		return frequent_itemsets
+
+	def all_association_rules(self, frequent_itemsets) :
+		"""
+		Get all association rules from itemsets
+		:param frequent_itemsets: List of itemsets
+		:return: List of tuple(itemset, associative_itemset, support, confidence)
+		"""
+		support_table = {}
+		for itemset, support in frequent_itemsets:
+			support_table[itemset_hash(itemset)] = support
+
+		ret = []
+
+		def recurs(mset):
+			flag = [0] * len(mset)
+
+			def powerset(depth):
+				if depth == len(mset):
+					p_set = []
+					q_set = []
+
+					for i in range(0, depth):
+						if flag[i]:
+							p_set.append(mset[i])
+						else:
+							q_set.append(mset[i])
+
+					if len(p_set) == 0 or len(q_set) == 0:
+						return
+
+					tmp = support_table[itemset_hash(sorted(set(p_set) | set(q_set)))]
+					sup = tmp
+					conf = tmp / support_table[itemset_hash(p_set)]
+
+					ret.append((p_set, q_set, sup, conf))
+					return
+
+				flag[depth] = 1
+				powerset(depth + 1)
+
+				flag[depth] = 0
+				powerset(depth + 1)
+
+			powerset(0)
+
+		for itemset, support in frequent_itemsets:
+			recurs(itemset)
+
+		return ret
 
 	def _calc_supports(self, itemsets):
 		""" Calculate supports by itemsets
@@ -92,20 +161,25 @@ class Apriori:
 
 		return supports
 
-	def _get_frequent_itemsets(self, itemsets, supports):
+	def _get_frequent_itemsets(self, itemsets, supports, return_with_support=False):
 		""" Get frequent itemsets by condition `minimum_support`
 
 		:param itemsets: List of itemset
 		:param supports: List or support value returned from `_calc_supports`
-		:return: List of itemset
+		:param return_with_support: If true, return List of tuple(itemset, support)
+									Otherwise, return List of itemset
+		:return: List of tuple(itemset, support) or itemset
 		"""
-		new_itemsets = []
+		ret = []
 
 		for i, itemset in enumerate(itemsets):
 			if self._satisfying_support(supports[i]):
-				new_itemsets.append(itemset)
+				if return_with_support:
+					ret.append((itemset, supports[i]))
+				else :
+					ret.append(itemset)
 
-		return new_itemsets
+		return ret
 
 	def _get_candidates(self, itemsets, k):
 		""" Get candidates on next step
@@ -130,7 +204,7 @@ class Apriori:
 					valid = False
 
 				if valid:
-					candidates.append(list(set(itemset1) | set(itemset2)))
+					candidates.append(sorted(set(itemset1) | set(itemset2)))
 
 		return candidates
 
@@ -140,20 +214,27 @@ class Apriori:
 		:param support: Number
 		:return: Boolean
 		"""
-		return support / len(self.transactions) >= self.minimum_support
+		return (support / len(self.transactions)) >= self.minimum_support
 
 	def _print_itemsets(self, itemsets, supports):
 		""" Print itemsets and supports for debug
 		"""
 		print("---------------")
 		for i, itemset in enumerate(itemsets) :
-			print("{%s}: %.2f" % (
-				','.join(self.item_list[x] for x in itemset),
-				supports[i] / len(self.transactions) * 100
+			print("%s: %.2f <%s>" % (
+				self.pretty_itemset(itemset),
+				supports[i] / len(self.transactions) * 100,
+				'Yes' if self._satisfying_support(supports[i]) else 'No',
 			))
 
 		print("---------------")
 
+	def pretty_itemset(self, itemset):
+		""" Get string version of itemset like {0,1,4}
+		"""
+		return "{%s}" % ','.join(sorted(
+			[self.item_list[x] for x in itemset]
+		))
 
 Apriori(
 	int(sys.argv[1]) / 100,
