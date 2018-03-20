@@ -53,7 +53,7 @@ class Apriori:
 		# Get association rules
 		#####
 		rules = self.all_association_rules(
-			self.get_frequent_itemsets()
+			*self.get_itemsets_and_supports()
 		)
 
 		#####
@@ -67,19 +67,22 @@ class Apriori:
 				conf * 100,
 			))
 
-	def get_frequent_itemsets(self):
+	def get_itemsets_and_supports(self):
 		""" Get frequent itemsets by apriori algorithm
 		"""
 		frequent_itemsets = []
+		all_supports = []
 
 		itemsets = [[i] for i in range(0, len(self.item_list))]
 		k = 0
 		while True :
 			supports = self._calc_supports(itemsets)
-			cur_frequent_itemsets = self._get_frequent_itemsets(itemsets, supports, return_with_support=True)
+			cur_frequent_itemsets = self._get_frequent_itemsets(itemsets, supports)
 
-			frequent_itemsets += cur_frequent_itemsets
-			candidates = self._get_candidates(itemsets=[t[0] for t in cur_frequent_itemsets], k=k+1)
+			frequent_itemsets += itemsets
+			all_supports += supports
+
+			candidates = self._get_candidates(cur_frequent_itemsets, k+1)
 
 			#self._print_itemsets(itemsets, supports)
 
@@ -89,17 +92,17 @@ class Apriori:
 				itemsets = candidates
 				k += 1
 
-		return frequent_itemsets
+		return frequent_itemsets, all_supports
 
-	def all_association_rules(self, frequent_itemsets) :
+	def all_association_rules(self, frequent_itemsets, supports) :
 		"""
 		Get all association rules from itemsets
 		:param frequent_itemsets: List of itemsets
 		:return: List of tuple(itemset, associative_itemset, support, confidence)
 		"""
 		support_table = {}
-		for itemset, support in frequent_itemsets:
-			support_table[itemset_hash(itemset)] = support
+		for i in range(0, len(frequent_itemsets)):
+			support_table[itemset_hash(frequent_itemsets[i])] = supports[i]
 
 		ret = []
 
@@ -107,15 +110,16 @@ class Apriori:
 			flag = [0] * len(mset)
 
 			def powerset(depth):
+				if len(mset) <= 1:
+					return
+
 				if depth == len(mset):
 					p_set = []
 					q_set = []
 
 					for i in range(0, depth):
-						if flag[i]:
-							p_set.append(mset[i])
-						else:
-							q_set.append(mset[i])
+						if flag[i]: p_set.append(mset[i])
+						else:       q_set.append(mset[i])
 
 					if len(p_set) == 0 or len(q_set) == 0:
 						return
@@ -125,6 +129,7 @@ class Apriori:
 					conf = tmp / support_table[itemset_hash(p_set)]
 
 					ret.append((p_set, q_set, sup, conf))
+
 					return
 
 				flag[depth] = 1
@@ -135,7 +140,7 @@ class Apriori:
 
 			powerset(0)
 
-		for itemset, support in frequent_itemsets:
+		for itemset in frequent_itemsets:
 			recurs(itemset)
 
 		return ret
@@ -161,23 +166,18 @@ class Apriori:
 
 		return supports
 
-	def _get_frequent_itemsets(self, itemsets, supports, return_with_support=False):
+	def _get_frequent_itemsets(self, itemsets, supports):
 		""" Get frequent itemsets by condition `minimum_support`
 
 		:param itemsets: List of itemset
 		:param supports: List or support value returned from `_calc_supports`
-		:param return_with_support: If true, return List of tuple(itemset, support)
-									Otherwise, return List of itemset
-		:return: List of tuple(itemset, support) or itemset
+		:return: List of itemset
 		"""
 		ret = []
 
 		for i, itemset in enumerate(itemsets):
 			if self._satisfying_support(supports[i]):
-				if return_with_support:
-					ret.append((itemset, supports[i]))
-				else :
-					ret.append(itemset)
+				ret.append(itemset)
 
 		return ret
 
