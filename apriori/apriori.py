@@ -57,15 +57,19 @@ class Apriori:
 		)
 
 		#####
-		# Print association rules
+		# Save association rules
 		#####
 		for itemset, ass_itemset, sup, conf in rules :
-			print("%s\t%s\t%.2f\t%.2f" % (
+			output_file.write("%s\t%s\t%.2f\t%.2f\n" % (
 				self.pretty_itemset(itemset),
 				self.pretty_itemset(ass_itemset),
 				sup / len(self.transactions) * 100,
 				conf * 100,
 			))
+
+		print("%d2 rules are created" % len(rules))
+		input_file.close()
+		output_file.close()
 
 	def get_itemsets_and_supports(self):
 		""" Get frequent itemsets by apriori algorithm
@@ -79,7 +83,7 @@ class Apriori:
 			supports = self._calc_supports(itemsets)
 			cur_frequent_itemsets = self._get_frequent_itemsets(itemsets, supports)
 
-			frequent_itemsets += itemsets
+			frequent_itemsets += cur_frequent_itemsets
 			all_supports += supports
 
 			candidates = self._get_candidates(cur_frequent_itemsets, k+1)
