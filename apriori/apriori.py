@@ -1,10 +1,5 @@
 import sys
 
-if len(sys.argv) != 4:
-	print("Usage: python apriori.py 5 input.txt output")
-	sys.exit(-1)
-
-
 def itemset_hash(itemset) :
 	return ','.join(str(x) for x in itemset)
 
@@ -68,23 +63,22 @@ class Apriori:
 			))
 
 		print("%d2 rules are created" % len(rules))
-		input_file.close()
-		output_file.close()
+
 
 	def get_itemsets_and_supports(self):
 		""" Get frequent itemsets by apriori algorithm
 		"""
 		frequent_itemsets = []
-		all_supports = []
+		frequent_supports = []
 
 		itemsets = [[i] for i in range(0, len(self.item_list))]
 		k = 0
 		while True :
 			supports = self._calc_supports(itemsets)
-			cur_frequent_itemsets = self._get_frequent_itemsets(itemsets, supports)
+			cur_frequent_itemsets, cur_frequent_supports = self._get_frequent_itemsets_and_supports(itemsets, supports)
 
 			frequent_itemsets += cur_frequent_itemsets
-			all_supports += supports
+			frequent_supports += cur_frequent_supports
 
 			candidates = self._get_candidates(cur_frequent_itemsets, k+1)
 
@@ -96,7 +90,7 @@ class Apriori:
 				itemsets = candidates
 				k += 1
 
-		return frequent_itemsets, all_supports
+		return frequent_itemsets, frequent_supports
 
 	def all_association_rules(self, frequent_itemsets, supports) :
 		"""
@@ -170,20 +164,22 @@ class Apriori:
 
 		return supports
 
-	def _get_frequent_itemsets(self, itemsets, supports):
+	def _get_frequent_itemsets_and_supports(self, itemsets, supports):
 		""" Get frequent itemsets by condition `minimum_support`
 
 		:param itemsets: List of itemset
 		:param supports: List or support value returned from `_calc_supports`
-		:return: List of itemset
+		:return: Tuple of (List of itemset) and (List of support)
 		"""
-		ret = []
+		ret_itemsets = []
+		ret_supports = []
 
 		for i, itemset in enumerate(itemsets):
 			if self._satisfying_support(supports[i]):
-				ret.append(itemset)
+				ret_itemsets.append(itemset)
+				ret_supports.append(supports[i])
 
-		return ret
+		return (ret_itemsets, ret_supports)
 
 	def _get_candidates(self, itemsets, k):
 		""" Get candidates on next step
@@ -240,8 +236,14 @@ class Apriori:
 			[self.item_list[x] for x in itemset]
 		))
 
-Apriori(
-	int(sys.argv[1]) / 100,
-	open(sys.argv[2], 'r'),
-	open(sys.argv[3], 'w'),
-)
+
+if __name__ == '__main__':
+	if len(sys.argv) != 4:
+		print("Usage: python apriori.py <minimum_support> <input_file> <output_file>")
+		sys.exit(-1)
+
+	Apriori(
+		int(sys.argv[1]) / 100,
+		open(sys.argv[2], 'r'),
+		open(sys.argv[3], 'w'),
+	)
