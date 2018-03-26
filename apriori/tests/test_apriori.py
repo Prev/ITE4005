@@ -1,30 +1,47 @@
 from io import StringIO
 import apriori
 
-def test_apriori():
-	input_file = open('tests/test_input.txt', 'r')
+def _test(minimum_support):
+	input_file = open('input.txt', 'r')
 	output = StringIO()
+	compare = open('tests/outputRsupport%d.txt' % minimum_support, 'r')
 
-	ap = apriori.Apriori(0.2, input_file, output)
+	apriori.Apriori(0.01 * minimum_support, input_file, output)
 
 	contents = output.getvalue()
-	print(contents)
+	ret_matrix = {}
 
-	ret_max = {}
-
-	for line in contents.split("\n") :
-		if not len(line) :
+	for line in contents.split("\n"):
+		if not len(line):
 			continue
 
 		p, q, sup, conf = line.split("\t")
-		print("%s/%s/%s/%s" % (p, q, sup, conf))
+		ret_matrix['%s->%s' % (p, q)] = (sup, conf)
 
-		ret_max['%s->%s' % (p, q)] = (sup, conf)
 
-	assert ret_max['{Ramen,Tuna}->{Egg}']  == ('20.00', '100.00')
-	assert ret_max['{Tuna}->{Egg}'] == ('20.00', '100.00')
-	assert ret_max['{Tuna}->{Egg,Ramen}'] == ('20.00', '100.00')
-	assert ret_max['{Ramen}->{Egg}'] == ('40.00', '50.00')
-	assert ret_max['{Ramen}->{Coke}'] == ('40.00', '50.00')
-	assert ret_max['{Egg}->{Coke}'] == ('30.00', '60.00')
+	for line in compare.readlines():
+		if line[-1] == '\n': line = line[0:-1]
 
+		p, q, sup, conf = line.split("\t")
+		assert ret_matrix['%s->%s' % (p, q)] == (sup, conf)
+
+		# key = '%s->%s' % (p, q)
+		# if key not in ret_matrix:
+		# 	print("No key:\t", line)
+		#
+		# elif ret_matrix[key] != (sup, conf):
+		# 	print("Mismatched:\t", key)
+		# 	print("\t\t\t Expected:  ", (sup, conf))
+		# 	print("\t\t\t Real:\t\t", ret_matrix[key])
+
+
+
+	compare.close()
+
+
+def test_minimum_support4():
+	_test(4)
+
+
+def test_minimum_support5():
+	_test(5)

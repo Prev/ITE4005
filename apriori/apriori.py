@@ -1,4 +1,5 @@
 import sys
+from decimal import Decimal, ROUND_HALF_UP
 
 def itemset_hash(itemset) :
 	return ','.join(str(x) for x in itemset)
@@ -22,6 +23,9 @@ class Apriori:
 		:param output_file: Opened file object to write
 		"""
 		self.minimum_support = minimum_support
+		self.transactions = []
+		self.item_list = set()
+		self.sparse_matrix = []
 
 		for line in input_file.readlines() :
 			if line[-1] == '\n': line = line[0:-1]
@@ -55,11 +59,14 @@ class Apriori:
 		# Save association rules
 		#####
 		for itemset, ass_itemset, sup, conf in rules :
+			sup2 = sup / len(self.transactions) * 100
+			conf2 = conf * 100
+
 			output_file.write("%s\t%s\t%.2f\t%.2f\n" % (
 				self.pretty_itemset(itemset),
 				self.pretty_itemset(ass_itemset),
-				sup / len(self.transactions) * 100,
-				conf * 100,
+				Decimal(sup2 * 100).quantize(0, ROUND_HALF_UP) / 100,
+				Decimal(conf2 * 100).quantize(0, ROUND_HALF_UP) / 100,
 			))
 
 		print("%d2 rules are created" % len(rules))
@@ -127,7 +134,6 @@ class Apriori:
 					conf = tmp / support_table[itemset_hash(p_set)]
 
 					ret.append((p_set, q_set, sup, conf))
-
 					return
 
 				flag[depth] = 1
@@ -232,9 +238,9 @@ class Apriori:
 	def pretty_itemset(self, itemset):
 		""" Get string version of itemset like {0,1,4}
 		"""
-		return "{%s}" % ','.join(sorted(
-			[self.item_list[x] for x in itemset]
-		))
+		return "{%s}" % ','.join([str(i) for i in
+			sorted([int(self.item_list[x]) for x in itemset])
+		])
 
 
 if __name__ == '__main__':
