@@ -111,27 +111,26 @@ class Apriori:
 
 		ret = []
 
-		def recurs(mset):
-			flag = [0] * len(mset)
+		def recurs(whole_itemset):
+			flag = [0] * len(whole_itemset)
 
 			def powerset(depth):
-				if len(mset) <= 1:
+				if len(whole_itemset) <= 1:
 					return
 
-				if depth == len(mset):
+				if depth == len(whole_itemset):
 					p_set = []
 					q_set = []
 
 					for i in range(0, depth):
-						if flag[i]: p_set.append(mset[i])
-						else:       q_set.append(mset[i])
+						if flag[i]: p_set.append(whole_itemset[i])
+						else:       q_set.append(whole_itemset[i])
 
 					if len(p_set) == 0 or len(q_set) == 0:
 						return
 
-					tmp = support_table[itemset_hash(sorted(set(p_set) | set(q_set)))]
-					sup = tmp
-					conf = tmp / support_table[itemset_hash(p_set)]
+					sup = support_table[itemset_hash(whole_itemset)]
+					conf = sup / support_table[itemset_hash(p_set)]
 
 					ret.append((p_set, q_set, sup, conf))
 					return
