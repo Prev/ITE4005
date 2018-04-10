@@ -46,30 +46,34 @@ class DecisionTree :
 		'car_evaluation': ('unacc', 'acc', 'good', 'vgood'),
 	}
 
-	def __init__(self, training_set, test_set=None, output_file=None) :
+	def __init__(self, training_set) :
 		""" Initialize apriori
 
 		:param training_set: Opened file object to train
-		:param test_set: Opened file object to tests
-		:param output_file: Opened file object to write
 		"""
 
-		head, tuples = head_and_body(training_set)
+		self.head, tuples = head_and_body(training_set)
+		self.tree = self.maketree(self.head, tuples)
 
-		self.tree = self.maketree(head, tuples)
 
-		if test_set is not None:
-			n_head, tuples = head_and_body(test_set)
+	def testfile(self, test_set, output_file=None):
+		""" Test dataset in files
 
-			print('\t'.join(head))
+		:param test_set: Opened file object to tests
+		:param output_file: Opened file object to write
+		:return:
+		"""
+		n_head, tuples = head_and_body(test_set)
 
-			for tuple in tuples:
-				d = {}
-				for index, attr in enumerate(n_head):
-					d[attr] = tuple[index]
+		output_file.write('\t'.join(self.head) + '\n')
 
-				rst = self.test(d)
-				print('%s\t%s' % ('\t'.join(tuple), rst))
+		for tuple in tuples:
+			d = {}
+			for index, attr in enumerate(n_head):
+				d[attr] = tuple[index]
+
+			rst = self.test(d)
+			output_file.write('%s\t%s\n' % ('\t'.join(tuple), rst))
 
 
 	def test(self, data):
@@ -104,12 +108,11 @@ class DecisionTree :
 			# There are no samples left
 			return self.DOMAINS[head[-1]][0]
 
+		result_vals = [row[-1] for row in tuples]
+
 		if len(head) == 1:
 			# There are no remaining attributes
-			# TODO: majority voting
-			return 'TODO_THING'
-
-		result_vals = [row[-1] for row in tuples]
+			return max(set(result_vals), key=result_vals.count) # majority voting
 
 		if result_vals.count(result_vals[0]) == len(result_vals):
 			# All samples for a given node belong to the same class
@@ -146,6 +149,10 @@ class DecisionTree :
 
 			cnt_table[attr] = {}
 			data_table[attr] = {}
+
+			if attr not in self.DOMAINS:
+				print("Warning: Attribute '%s' is not able in this program" % attr)
+				continue
 
 			for domain in self.DOMAINS[attr]:
 				cnt_table[attr][domain] = {}
@@ -205,8 +212,8 @@ if __name__ == '__main__':
 		print("Usage: python dt.py <training_set> <test_set> <output_file>")
 		sys.exit(-1)
 
-	DecisionTree(
-		open(sys.argv[1], 'r'),
+	dt = DecisionTree(open(sys.argv[1], 'r'))
+	dt.testfile(
 		open(sys.argv[2], 'r'),
 		open(sys.argv[3], 'w'),
 	)
