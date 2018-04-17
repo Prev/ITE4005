@@ -6,7 +6,7 @@ def test_info():
 
 
 def test_tree():
-	dt = DecisionTree(open('../data/dt_train.txt'))
+	dt = DecisionTree(open('data/dt_train.txt'))
 	assert dt.tree[0] == 'age'
 
 	assert dt.tree[1]['<=30'][0] == 'student'
@@ -21,7 +21,7 @@ def test_tree():
 
 
 def test_majority_voting():
-	dt = DecisionTree(open('../tests/one_attr.txt'))
+	dt = DecisionTree(open('tests/one_attr.txt'))
 
 	assert dt.tree[1]['<=30'] == 'no'
 	assert dt.tree[1]['31...40'] == 'yes'
@@ -29,7 +29,7 @@ def test_majority_voting():
 
 
 def test_test():
-	dt = DecisionTree(open('../data/dt_train.txt'))
+	dt = DecisionTree(open('data/dt_train.txt'))
 	assert dt.test({
 		'age': '<=30',
 		'income': 'low',
@@ -41,9 +41,9 @@ def test_test():
 def test_testfile():
 	from io import StringIO
 
-	dt = DecisionTree(open('../data/dt_train.txt'))
+	dt = DecisionTree(open('data/dt_train.txt'))
 	output = StringIO()
-	dt.testfile(open('../data/dt_test.txt'), output)
+	dt.testfile(open('data/dt_test.txt'), output)
 
 	contents = output.getvalue()
 

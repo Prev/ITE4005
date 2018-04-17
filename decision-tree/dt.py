@@ -56,12 +56,11 @@ class DecisionTree :
 		self.tree = self.maketree(self.head, tuples)
 
 
-	def testfile(self, test_set, output_file=None):
+	def testfile(self, test_set, output_file):
 		""" Test dataset in files
 
 		:param test_set: Opened file object to tests
 		:param output_file: Opened file object to write
-		:return:
 		"""
 		n_head, tuples = head_and_body(test_set)
 
@@ -92,11 +91,12 @@ class DecisionTree :
 		return cur
 
 
-	def maketree(self, head, tuples):
+	def maketree(self, head, tuples, prev_tuples=None):
 		""" Make decision tree
 
 		:param head: Attribute(class) set
 		:param tuples: Data set
+		:param prev_tuples: Data set used in previous step (by recursive call)
 		:return: Tree used to decide something
 				ex) ('age', {
 						'31...40': 'yes',
@@ -106,7 +106,12 @@ class DecisionTree :
 		"""
 		if len(tuples) == 0:
 			# There are no samples left
-			return self.DOMAINS[head[-1]][0]
+			if prev_tuples:
+				# If there are tuples on previous step, vote by majority of it
+				result_vals = [row[-1] for row in prev_tuples]
+				return max(set(result_vals), key=result_vals.count)  # majority voting
+			else:
+				return self.DOMAINS[head[-1]][0]
 
 		result_vals = [row[-1] for row in tuples]
 
@@ -119,17 +124,17 @@ class DecisionTree :
 			return result_vals[0]
 
 
-		min_attr, data = self._highest_gain_attr(head, tuples)
+		gained_attr, data = self._highest_gain_attr(head, tuples)
 
-		idx = head.index(min_attr)
+		idx = head.index(gained_attr)
 		n_head = head[0:idx] + head[idx + 1:]
 
 		ret = {}
 		for domain, _tuples in data.items():
 			n_tuples = [t[0:idx] + t[idx + 1:] for t in _tuples]
-			ret[domain] = self.maketree(n_head, n_tuples)
+			ret[domain] = self.maketree(n_head, n_tuples, tuples)
 
-		return (min_attr, ret)
+		return (gained_attr, ret)
 
 
 	def _highest_gain_attr(self, head, tuples):
