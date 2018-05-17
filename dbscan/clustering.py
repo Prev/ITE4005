@@ -87,7 +87,8 @@ class Cluster:
 			)
 			cluster_id += 1
 
-		clusters = [[] for _ in range(0, self.n)]
+		# Make cluster list from points
+		clusters = [[] for _ in range(0, cluster_id)]
 		for point in self.points:
 			if point.cluster == Point.Label.NOISE:
 				continue
@@ -131,10 +132,9 @@ if __name__ == '__main__':
 		int(sys.argv[3]),
 		int(sys.argv[4]),
 	)
-	result = c.clusters()
 
-	for index, output in enumerate(result):
-		output_filename = input_file_name + '_cluster_%d.txt' % index
+	for index, output in enumerate(c.clusters()):
+		output_filename = input_file_name.split('.')[0] + '_cluster_%d.txt' % index
 
 		with open(output_filename, 'w') as output_file:
 			for object_id in output:
