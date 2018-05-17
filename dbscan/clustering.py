@@ -49,16 +49,16 @@ class Cluster:
 
 		return ret
 
-	def __init__(self, points, n, esp, minpts):
+	def __init__(self, points, n, eps, minpts):
 		""" Initialize Cluster
 		:param points: List of Point class
 		:param n: Number of clusters
-		:param esp: Epsilon of DBScan
+		:param eps: Epsilon of DBScan
 		:param minpts: MinPts of DBScan
 		"""
 		self.points = points
 		self.n = n
-		self.esp = esp
+		self.eps = eps
 		self.minpts = minpts
 
 	def clusters(self):
@@ -104,7 +104,7 @@ class Cluster:
 		:param point: The point to find out neighbors
 		:return: List of points
 		"""
-		return [p for p in self.points if p != point and point.dist(p) <= self.esp]
+		return [p for p in self.points if p != point and point.dist(p) <= self.eps]
 
 	def _expand(self, seeds, cluster_id):
 		""" Expand candidate points for clustering
@@ -124,7 +124,7 @@ class Cluster:
 
 if __name__ == '__main__':
 	if len(sys.argv) != 5:
-		print("Usage: python cluster.py <input_file> <n> <esp>, <minpts>")
+		print("Usage: python cluster.py <input_file> <n> <eps>, <minpts>")
 		sys.exit(-1)
 
 	input_file_name = sys.argv[1]

@@ -34,6 +34,8 @@ python3 -m pytest tests/
 
 ## 3. DBScan
 
+[See More](./dbscan)
+
 ##### Usage:
 
 ```bash
