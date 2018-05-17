@@ -65,6 +65,8 @@ class Cluster:
 		""" Get clusters by running DBScan
 		:return: List of clusters (Cluster is list of point ids)
 		"""
+		print('Start clustering...')
+
 		cluster_id = 1
 		for point in self.points:
 			if point.cluster != Point.Label.UNCLASSIFIED:
@@ -88,13 +90,14 @@ class Cluster:
 			cluster_id += 1
 
 		# Make cluster list from points
-		clusters = [[] for _ in range(0, cluster_id)]
+		clusters = [[] for _ in range(0, cluster_id-1)]
 		for point in self.points:
 			if point.cluster == Point.Label.NOISE:
 				continue
 			clusters[point.cluster - 1].append(point.id)
 
-		return clusters
+		clusters.sort(key=lambda l: len(l), reverse=True)
+		return clusters[0:self.n]
 
 	def _neighbors(self, point):
 		""" Get neighbors of point

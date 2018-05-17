@@ -32,3 +32,17 @@ cd decision-tree
 python3 -m pytest tests/
 ```
 
+## 3. DBScan
+
+##### Usage:
+
+```bash
+# Run program
+cd dbscan
+python3 clustering.py data/input3.txt 4 5 5
+
+# Run tests
+cd dbscan
+python3 -m pytest tests/
+```
+
