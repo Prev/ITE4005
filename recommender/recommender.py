@@ -42,25 +42,42 @@ class Recommender:
 
 			self.user_set[user_id][item_id] = int(rating)
 
+		self.neighbors_cache = {}
+
 	def predicate(self):
 		""" Predicate relation (user_id -> item_id) with rating.
 		:return: List of tuple(user_id, item_id, rating)
 		"""
-		item_dict = sorted(list(self.item_dict))
+		# item_dict = sorted(list(self.item_dict))
 
+		# for user_id, user in self.user_set.items():
+		# 	neighbors = self._neighbors(user)
+		#
+		# 	for item_id in item_dict:
+		# 		if item_id not in user:
+		# 			# Predicate item which is not existing in training set
+		# 			v = [u[item_id] for u in neighbors if item_id in u]
+		# 			if len(v) == 0:
+		# 				continue
+		# 			avg = sum(v) / len(v)
+		#
+		# 			# print("%d\t%d\t%d" % (user_id, item_id, avg))
+		# 			yield (user_id, item_id, round(avg))
+
+		neighbors_dict = {}
 		for user_id, user in self.user_set.items():
-			neighbors = self._neighbors(user)
+			neighbors_dict[user_id] = self._neighbors(user)
 
-			for item_id in item_dict:
-				if item_id not in user:
-					# Predicate item which is not existing in training set
-					v = [u[item_id] for u in neighbors if item_id in u]
-					if len(v) == 0:
-						continue
-					avg = sum(v) / len(v)
+		for user_id, item_id, _, _ in self.test_set:
+			# Predicate rating by calculating average of neighbors
+			v = [u[item_id] for u in neighbors_dict[user_id] if item_id in u]
+			if len(v) == 0:
+				rating = 2
+			else:
+				rating = round(sum(v) / len(v))
 
-					# print("%d\t%d\t%d" % (user_id, item_id, avg))
-					yield (user_id, item_id, round(avg))
+			yield (user_id, item_id, rating)
+
 
 	def _neighbors(self, user):
 		""" Get neighbors of user.
@@ -74,6 +91,7 @@ class Recommender:
 				continue
 			if self._sim(user, candidate) >= 0.97:
 				ret.append(candidate)
+
 		return ret
 
 	def _sim(self, user1, user2):
@@ -102,7 +120,7 @@ if __name__ == '__main__':
 		sys.exit(-1)
 
 	training_file_name = sys.argv[1]
-	test_file_name = sys.argv[1]
+	test_file_name = sys.argv[2]
 
 	rc = Recommender(
 		Recommender.file2dataset(open(training_file_name, 'r')),
