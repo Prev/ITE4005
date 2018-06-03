@@ -48,27 +48,13 @@ class Recommender:
 		""" Predicate relation (user_id -> item_id) with rating.
 		:return: List of tuple(user_id, item_id, rating)
 		"""
-		# item_dict = sorted(list(self.item_dict))
-
-		# for user_id, user in self.user_set.items():
-		# 	neighbors = self._neighbors(user)
-		#
-		# 	for item_id in item_dict:
-		# 		if item_id not in user:
-		# 			# Predicate item which is not existing in training set
-		# 			v = [u[item_id] for u in neighbors if item_id in u]
-		# 			if len(v) == 0:
-		# 				continue
-		# 			avg = sum(v) / len(v)
-		#
-		# 			# print("%d\t%d\t%d" % (user_id, item_id, avg))
-		# 			yield (user_id, item_id, round(avg))
 
 		neighbors_dict = {}
 		for user_id, user in self.user_set.items():
 			neighbors_dict[user_id] = self._neighbors(user)
 
-		for user_id, item_id, _, _ in self.test_set:
+		rmse = 0
+		for user_id, item_id, real_rating, _ in self.test_set:
 			# Predicate rating by calculating average of neighbors
 			v = [u[item_id] for u in neighbors_dict[user_id] if item_id in u]
 			if len(v) == 0:
@@ -76,7 +62,12 @@ class Recommender:
 			else:
 				rating = round(sum(v) / len(v))
 
+			rmse += (real_rating - rating) ** 2
+
 			yield (user_id, item_id, rating)
+
+		rmse = math.sqrt(rmse / len(self.test_set))
+		print("RMSE = %.3f" % rmse)
 
 
 	def _neighbors(self, user):
@@ -86,10 +77,11 @@ class Recommender:
 		:return: List of users
 		"""
 		ret = []
-		for user_id, candidate in self.user_set.items():
+		for candidate_id, candidate in self.user_set.items():
 			if user == candidate:
 				continue
-			if self._sim(user, candidate) >= 0.97:
+
+			if self._sim(user, candidate) >= 0.5:
 				ret.append(candidate)
 
 		return ret
@@ -101,9 +93,12 @@ class Recommender:
 		:return: Similarity calculated by cosine similarity (0~1)
 		"""
 		# list of (rating1, rating2)
-		v = [(rating1, user2[item_id]) for item_id, rating1 in user1.items() if item_id in user2]
+		#v = [(rating1, user2[item_id]) for item_id, rating1 in user1.items() if item_id in user2]
+		v = [(rating1, user2.get(item_id, 0)) for item_id, rating1 in user1.items()]
 
 		if len(v) == 0:
+			return 0
+		elif sum([w1 * w2 for w1, w2 in v]) == 0:
 			return 0
 		else:
 			# Cosine Similarity
