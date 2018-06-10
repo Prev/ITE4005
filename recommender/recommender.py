@@ -23,6 +23,7 @@ class Recommender:
 			ret.append((int(t[0]), int(t[1]), int(t[2]), t[3]))
 		return ret
 
+
 	def __init__(self, training_set, test_set):
 		""" Init Recommender class instance
 		:param training_set: List of tuple(user_id, item_id, rating, time_stamp)
@@ -44,11 +45,11 @@ class Recommender:
 
 		self.neighbors_cache = {}
 
+
 	def predicate(self):
 		""" Predicate relation (user_id -> item_id) with rating.
 		:return: List of tuple(user_id, item_id, rating)
 		"""
-
 		neighbors_dict = {}
 		for user_id, user in self.user_set.items():
 			neighbors_dict[user_id] = self._neighbors(user)
@@ -57,10 +58,16 @@ class Recommender:
 		for user_id, item_id, real_rating, _ in self.test_set:
 			# Predicate rating by calculating average of neighbors
 			v = [u[item_id] for u in neighbors_dict[user_id] if item_id in u]
+			# v = [(u[item_id], w) for u, w in neighbors_dict[user_id] if item_id in u]
 			if len(v) == 0:
 				rating = 2
 			else:
 				rating = round(sum(v) / len(v))
+				#rating = max(set(v), key=v.count)  # Majority voting
+				# scores = {}
+				# for ur, w in v:
+				# 	scores[ur] = scores.get(ur, 0) + w
+				# rating = max(scores.items(), key=lambda x: x[1])[0] # Voting by sum of similarity (RMSE = 1.143)
 
 			rmse += (real_rating - rating) ** 2
 
@@ -81,10 +88,13 @@ class Recommender:
 			if user == candidate:
 				continue
 
-			if self._sim(user, candidate) >= 0.5:
+			if self._sim(user, candidate) >= 0.35:
 				ret.append(candidate)
+			# if self._sim(user, candidate) >= 0.5:
+			# 	ret.append((candidate, self._sim(user, candidate)))
 
 		return ret
+
 
 	def _sim(self, user1, user2):
 		""" Get similarity between user1 and user2
