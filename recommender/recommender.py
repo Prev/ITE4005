@@ -25,85 +25,66 @@ class Recommender:
 
 
 	def __init__(self, training_set, test_set):
-		""" Init Recommender class instance
+		""" Init Recommender class instance and prepare for predicating
 		:param training_set: List of tuple(user_id, item_id, rating, time_stamp)
 		:param test_set: List of tuple(user_id, item_id, rating, time_stamp)
 		"""
-		training_set = training_set
 		self.test_set = test_set
+		data = {}
 
-		self.user_set = {}
-		self.item_dict = set()
-
+		# You can get rating by accessing `data[user_id][item_id]`
 		for user_id, item_id, rating, timestamp in training_set:
-			if item_id not in self.item_dict:
-				self.item_dict.add(item_id)
-			if user_id not in self.user_set:
-				self.user_set[user_id] = {}
+			if user_id not in data:
+				data[user_id] = {}
+			data[user_id][item_id] = rating
 
-			self.user_set[user_id][item_id] = int(rating)
-
-		self.neighbors_cache = {}
+		# Pre-build-up neighbors
+		self.neighbors_dict = {}
+		for user_id, user in data.items():
+			self.neighbors_dict[user_id] = self._neighbors(
+				user=user,
+				allusers=data.values()
+			)
 
 
 	def predicate(self):
 		""" Predicate relation (user_id -> item_id) with rating.
 		:return: List of tuple(user_id, item_id, rating)
 		"""
-		neighbors_dict = {}
-		for user_id, user in self.user_set.items():
-			neighbors_dict[user_id] = self._neighbors(user)
-
-		rmse = 0
 		for user_id, item_id, real_rating, _ in self.test_set:
 			# Predicate rating by calculating average of neighbors
-			v = [u[item_id] for u in neighbors_dict[user_id] if item_id in u]
-			# v = [(u[item_id], w) for u, w in neighbors_dict[user_id] if item_id in u]
+			v = [u[item_id] for u in self.neighbors_dict[user_id] if item_id in u]
 			if len(v) == 0:
 				rating = 2
 			else:
 				rating = round(sum(v) / len(v))
-				#rating = max(set(v), key=v.count)  # Majority voting
-				# scores = {}
-				# for ur, w in v:
-				# 	scores[ur] = scores.get(ur, 0) + w
-				# rating = max(scores.items(), key=lambda x: x[1])[0] # Voting by sum of similarity (RMSE = 1.143)
-
-			rmse += (real_rating - rating) ** 2
 
 			yield (user_id, item_id, rating)
 
-		rmse = math.sqrt(rmse / len(self.test_set))
-		print("RMSE = %.3f" % rmse)
 
-
-	def _neighbors(self, user):
+	def _neighbors(self, user, allusers):
 		""" Get neighbors of user.
-		Criteria is set by heuristic, which cosine similarity is more than 0.97
+		Criteria is set by heuristic, which cosine similarity is more than 0.35
 		:param user: Dictionary value that has { item_id: rating } set
 		:return: List of users
 		"""
 		ret = []
-		for candidate_id, candidate in self.user_set.items():
+		for candidate in allusers:
 			if user == candidate:
 				continue
-
 			if self._sim(user, candidate) >= 0.35:
 				ret.append(candidate)
-			# if self._sim(user, candidate) >= 0.5:
-			# 	ret.append((candidate, self._sim(user, candidate)))
 
 		return ret
 
 
 	def _sim(self, user1, user2):
-		""" Get similarity between user1 and user2
+		""" Get similarity between user1 and user2 (Cosine)
 		:param user1: Dictionary value that has { item_id: rating } set
 		:param user2: Dictionary value that has { item_id: rating } set
 		:return: Similarity calculated by cosine similarity (0~1)
 		"""
 		# list of (rating1, rating2)
-		#v = [(rating1, user2[item_id]) for item_id, rating1 in user1.items() if item_id in user2]
 		v = [(rating1, user2.get(item_id, 0)) for item_id, rating1 in user1.items()]
 
 		if len(v) == 0:
@@ -127,20 +108,17 @@ if __name__ == '__main__':
 	training_file_name = sys.argv[1]
 	test_file_name = sys.argv[2]
 
+	print('Build model.. please wait')
 	rc = Recommender(
 		Recommender.file2dataset(open(training_file_name, 'r')),
 		Recommender.file2dataset(open(test_file_name, 'r')),
 	)
 
 	output_filename = training_file_name.split('.')[0] + '.base_prediction.txt'
-	old_user_id = -1
+	print('Writing predicated data to %s ...' % output_filename)
 
 	with open(output_filename, 'w') as output_file:
 		for user_id, item_id, rating in rc.predicate():
-			if old_user_id != user_id:
-				print("now predicating user %s" % user_id)
-				old_user_id = user_id
-
 			output_file.write('%d\t%d\t%s\n' % (user_id, item_id, rating))
 
-	print('Result is written at %s' % output_filename)
+	print('Yeah! Finished')
