@@ -48,3 +48,15 @@ cd dbscan
 python3 -m pytest tests/
 ```
 
+## 4. Recommender
+
+[See More](./recommender)
+
+##### Usage:
+
+```bash
+# Run program
+cd recommender
+python3 recommender.py data/u1.base data/u1.test
+```
+
